@@ -82,10 +82,12 @@ router.get('/:idx', (req, res) => {
     //idx의 번호를 가진 게시글을 보여줌 
     let password = req.body.password;
 
-    postquery.query('select idx, title, content, user_id, board_pass, upload_time from board_table where idx = ?', parseInt(req.params.idx), (err, result, field) => {
+    postquery.query('select idx, title, content, user_id, board_pass, upload_time, delete_time from board_table where idx = ?', parseInt(req.params.idx), (err, result, field) => {
         if (err) res.status(400).send(err);
         // 없는 인덱스 페이지를 불러올경우
         if (!result[0]) return res.sendStatus(404);
+        // 삭제된 게시글을 불러올 경우
+        if (result[0].delete_time) return res.status(404).send("deleted_post");
         //게시글의 패스워드가 있을 경우
         if (result[0].board_pass) {
             let dbpassword = result[0].board_pass;
@@ -95,8 +97,9 @@ router.get('/:idx', (req, res) => {
         return res.status(200).send(result[0]);
     });
 });
+//삭제된 게시글이면 보여주지 않도록 처리해야 함 220129
 
-//댓글
+//댓글 => 게시글 삭제가 되면 비밀번호고 삭제되도록 구현해야함
 router.use('/:idx/comment', commentroute); //임시로 url
 
 
@@ -147,5 +150,7 @@ router.delete('/:idx', (req, res) => {
 
 });
 
+//검색기능 구현하기 22-01-29 => querystring으로 보낸다면? post/2/commnet?user_id=ksoom0207 이렇게
+//
 
 module.exports = router;

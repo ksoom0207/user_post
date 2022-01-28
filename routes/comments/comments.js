@@ -20,6 +20,10 @@ router.post('/', (req, res) => {
         "comment_depth": 0,
         "post_idx": idx
     }
+    //user_id를 나중에는 세션 스토리지 통해 받아오기
+
+    if (!comment.content) return res.status(400).send("write_content");
+    if (!comment.user_id) return res.status(400).send("write_user_id");
 
     commentquery.query(insert_query, comment, (err, result, fleid) => {
         if (err) { console.log(err); return res.sendStatus(400); }
@@ -29,9 +33,21 @@ router.post('/', (req, res) => {
 
 //대댓글을 위한 쿼리
 router.post('/:comment_idx', (req, res) => {
-    let comment_idx = parseInt(req.params.idx);
-    let insert_query = `insert into comment_table SET post_idx = ?, content = ?, user_id = ?, comment_parent_idx = ?`;
-    commentquery.query(insert_query, [req.body, comment_idx], (err, result, fleid) => {
+    let idx = parseInt(req.params.idx);
+    let comment_idx = parseInt(req.params.comment_idx);
+
+    console.log(comment_idx);
+    let comment = {
+        "user_id": req.body.user_id,
+        "content": req.body.content,
+        "comment_depth": 1,
+        "post_idx": idx,
+        "comment_parent_idx": comment_idx
+    }
+    //실제로 db에 comment_idx가 존재하는지, 그게 부모인지 자식인지 조회하는 로직이 필요함! 22-01-29
+
+    let insert_query = `insert into comment_table SET ?`;
+    commentquery.query(insert_query, comment, (err, result, fleid) => {
         if (err) { console.log(err); return res.sendStatus(400); }
         return res.sendStatus(201);
     })
