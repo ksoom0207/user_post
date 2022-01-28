@@ -10,8 +10,8 @@ const commentroute = require('./comments/comments');
 const crypto = require('crypto');
 //const router_child = express.Router({ mergeParams: true });
 
-router.use(bodyParser.json());
-router.use(bodyParser.urlencoded({ extended: true }));
+router.use(express.json());
+//router.use(bodyParser.urlencoded({ extended: true }));
 
 const postquery = mysqlCon.init();
 mysqlCon.open(postquery);
@@ -96,8 +96,8 @@ router.get('/:idx', (req, res) => {
     });
 });
 
-
-router.use('/:idx', commentroute); //임시로 url
+//댓글
+router.use('/:idx/comment', commentroute); //임시로 url
 
 
 //수정하기 버튼을 눌렀을 경우

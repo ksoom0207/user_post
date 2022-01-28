@@ -2,8 +2,6 @@ const texttest = require("../texttest");
 
 const express = require('express');
 let router = express.Router();
-const bodyParser = require('body-parser');
-
 const session = require('express-session');
 var MySQLStore = require("express-mysql-session")(session);
 
@@ -14,8 +12,8 @@ mysqlCon.open(memberquery);
 const crypto = require('crypto');
 const { builtinModules } = require("module");
 
-router.use(bodyParser.json());
-router.use(bodyParser.urlencoded({ extended: true }));
+//router.use(bodyParser.json());
+// router.use(bodyParser.urlencoded({ extended: true }));
 
 
 //var sessionStore = new MySQLStore(options);
