@@ -11,6 +11,7 @@ mysqlCon.open(memberquery);
 
 const crypto = require('crypto');
 const { builtinModules } = require("module");
+const { route } = require("./post");
 
 //router.use(bodyParser.json());
 // router.use(bodyParser.urlencoded({ extended: true }));
@@ -99,7 +100,29 @@ router.post('/login', (req, res) => {
     })
 });
 
-router.put('/:idx', (req, res) => {
+//회원정보랑 비밀번호 수정 분기를 따로 두도록 수정하기 22-01-29
+//회원번호를 안보이게 하는 방법은??
+router.put('/:idx/info', (req, res) => {
+    let body = {
+        "email": req.body.email,
+        "phone_num": req.body.phone_num
+    }
+    // if (!texttest.email.test(body.email)) return res.status(401).send("wrong_information_email");
+    // if (!texttest.phone_num.test(body.phone_num)) return res.status(401).send("wrong_information_phone_num");
+
+    //email을 수정할 경우
+    // if (body.email) {
+    //     memberquery.query('select phone_num from member_table', (err, result) => {
+    //         if (err) { return res.status(400); }
+    //         
+    //         for (const item of result) {
+    //             if (item.email == body.email) return res.status(401).send("duplicated_email");
+    //         }
+    //     });
+    // }
+
+});
+router.put('/:idx/password', (req, res) => {
     let body = req.body;
     let password = body.password;
     let modify_password = body.newpassword;
@@ -108,29 +131,7 @@ router.put('/:idx', (req, res) => {
     let NewhashPassword;
     //현재 비밀번호가 맞는지 확인은 어떻게 하지?
     if (!texttest.password.test(modify_password)) return res.status(401).send("write_other_newpassword"); //send 표현 수정
-    // if (!texttest.id.test(req.body.id)) return res.status(401).send("4_and_20size_write_olny_english_and_num");
-    // if (!texttest.email.test(req.body.email)) return res.status(401).send("wrong_information_email");
-    // if (!texttest.phone_num.test(req.body.phone_num)) return res.status(401).send("wrong_information_phone_num");
 
-    //id를 수정할 경우
-    // if (body.id) {
-    //     memberquery.query('select id from member_table', (err, result) => {
-    //         if (err) { return res.status(400); }
-    //         //console.log(result);
-    //         for (const item of result) {
-    //             if (item.id == body.id) return res.status(401).send("duplicated_id");
-    //         }
-    //     });
-    // }
-    //phone_num을 수정할 경우
-    // if (body.phone_num) {
-    //     memberquery.query('select phone_num from member_table', (err, result) => {
-    //         if (err) { return res.status(400); }
-    //         for (const item of result) {
-    //             if (item.phone_num == body.phone_num) return res.status(401).send("duplicated_phone_num");
-    //         }
-    //     });
-    // }
 
     //비밀번호를 수정할 경우
     memberquery.query('select password, salt from member_table where idx = ?', idx, (err, result, fiedls) => {
@@ -169,7 +170,7 @@ router.get('/logout', (req, res) => {
 router.delete('/:idx', (req, res) => {
     let idx = parseInt(req.params.idx);
 
-    memberquery.query('select idx , isResign from member_table where idx = ?', idx,
+    memberquery.query('select idx, isResign from member_table where idx = ?', idx,
         (err, result) => {
             //없는 id를 불러왔을경우
             if (!result[0]) { return res.status(404); }
@@ -187,6 +188,6 @@ router.delete('/:idx', (req, res) => {
     )
 });
 
-// 아이디 찾기, 비밀번호 찾기 => 수정 로직 구현해야함 220129
+// 회원 상세페이지, 아이디 찾기, 비밀번호 찾기 => 수정 로직 구현해야함 220129
 // 비밀번호의 경우 본인 인증하고 새로 만드는게 더 편할수도? 
 module.exports = router;
