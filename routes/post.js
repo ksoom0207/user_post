@@ -14,7 +14,6 @@ router.use(express.json());
 //router.use(bodyParser.urlencoded({ extended: true }));
 
 const postquery = mysqlCon.init();
-mysqlCon.open(postquery);
 
 // var sessionStore = new MySQLStore(options);
 // router.use(
@@ -99,7 +98,7 @@ router.get('/:idx', (req, res) => {
 });
 //삭제된 게시글이면 보여주지 않도록 처리해야 함 220129
 
-//댓글 => 게시글 삭제가 되면 비밀번호고 삭제되도록 구현해야함
+//댓글 => 게시글 삭제가 되면 댓글도 삭제되도록 구현해야함
 router.use('/:idx/comment', commentroute); //임시로 url
 
 
@@ -133,17 +132,24 @@ router.put('/:idx', (req, res) => {
 router.delete('/:idx', (req, res) => {
     //삭제시간 넣기
     let idx = parseInt(req.params.idx);
+    let board_password = req.body.board_pass;
+    let hashPassword = crypto.createHash("sha256").update(board_password).digest("hex");
     //인덱스 페이지 있는지 판별
-    postquery.query('select idx from board_table where idx = ?', idx,
+    postquery.query('select idx, board_pass from board_table where idx = ?', idx,
         (err, result) => {
             // 페이지가 없을경우
             if (!result[0]) return res.sendStatus(404);
+
             if (result[0]) { //페이지가 있을경우
-                postquery.query('update board_table SET delete_time = current_timestamp() where idx = ?', idx,
-                    (err, result) => {
-                        if (err) { return res.status(401); }
-                        return res.sendStatus(204);
-                    });
+                //비밀번호가 맞거나... 아님 실제 비밀번호가 null 값인경우
+                if (result[0].board_pass == hashPassword || !result[0].board_pass) {
+                    postquery.query('update board_table SET delete_time = current_timestamp() where idx = ?', idx,
+                        (err, result) => {
+                            if (err) { return res.status(401); }
+                            return res.sendStatus(204);
+                        });
+                }
+
             }
         });
 
