@@ -45,6 +45,8 @@ router.post('/:comment_idx', (req, res) => {
         "comment_parent_idx": comment_idx
     }
     //실제로 db에 comment_idx가 존재하는지, 그게 부모인지 자식인지 조회하는 로직이 필요함! 22-01-29
+    if (!comment.content) return res.status(400).send("write_content");
+    if (!comment.user_id) return res.status(400).send("write_user_id");
 
     let insert_query = `insert into comment_table SET ?`;
     commentquery.query(insert_query, comment, (err, result, fleid) => {
