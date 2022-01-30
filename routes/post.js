@@ -42,7 +42,8 @@ router.get('/', (req, res, next) => {
         return res.sendStatus(401);
     }
 });
-
+//TODO 제목 길어질 경우 n글자 이상 되었을떄 처리하는 방법? / 작성일
+//조회수 일정 범위 이상 넘어갈경우 +? 1K? 등등
 
 router.post('/write', (req, res) => {
     let newWrite = {
@@ -75,6 +76,7 @@ router.post('/write', (req, res) => {
     }
 
 });
+//TODO 텍스트 에디터? 기본HTML태그 뺴기
 
 //게시글 보기
 router.get('/:idx', (req, res) => {
@@ -94,6 +96,7 @@ router.get('/:idx', (req, res) => {
             else return res.status(401).send("wrong_password");
         }
         return res.status(200).send(result[0]);
+        //TODO board_pass 값 안보이도록
     });
 });
 //삭제된 게시글이면 보여주지 않도록 처리해야 함 220129
@@ -110,6 +113,7 @@ router.put('/:idx', (req, res) => {
     if (!req.body.content) return res.status(400).send("write_content");
 
     //비밀번호 추가 or 변경 
+    //TODO board_pass 암호화해서 보내가
     if (req.body.board_pass) {
         let board_password = req.body.board_pass;
         let hashPassword = crypto.createHash("sha256").update(board_password).digest("hex");
@@ -140,17 +144,17 @@ router.delete('/:idx', (req, res) => {
             // 페이지가 없을경우
             if (!result[0]) return res.sendStatus(404);
 
-            if (result[0]) { //페이지가 있을경우
-                //비밀번호가 맞거나... 아님 실제 비밀번호가 null 값인경우
-                if (result[0].board_pass == hashPassword || !result[0].board_pass) {
-                    postquery.query('update board_table SET delete_time = current_timestamp() where idx = ?', idx,
-                        (err, result) => {
-                            if (err) { return res.status(401); }
-                            return res.sendStatus(204);
-                        });
-                }
-
+            //if (result[0]) { //페이지가 있을경우
+            //비밀번호가 맞거나... 아님 실제 비밀번호가 null 값인경우
+            if (result[0].board_pass == hashPassword || !result[0].board_pass) {
+                postquery.query('update board_table SET delete_time = current_timestamp() where idx = ?', idx,
+                    (err, result) => {
+                        if (err) { return res.status(401); }
+                        return res.sendStatus(204);
+                    });
             }
+
+            //}
         });
 
 

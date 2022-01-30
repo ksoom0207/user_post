@@ -30,6 +30,8 @@ const { route } = require("./post");
 //웹 세션은 사용자가 애플리케이션(즉 웹이나 서버)와 상호 작용하는 동안에만 사용할 수 있도록 임시 데이터를 저장하기 위해 사용하는 데이터 형태
 
 //정보를 입력하고 회원가입 하기 버튼(가상)을 눌렀을 경우
+
+//TODO SQL injection 공부 => 미들웨어로 적용
 router.post('/signup', (req, res) => {
     let body = req.body;
     let inputPassword = body.password;
@@ -41,17 +43,19 @@ router.post('/signup', (req, res) => {
     if (!req.body.phone_num) return res.status(401).send("write_phone_num");
 
     if (!texttest.password.test(inputPassword)) return res.status(401).send("incorrect_password"); //정규표현식 통과못했다는걸 표시
+    if (!texttest.email.test(req.body.email)) return res.status(401).send("incorrect_email"); //정규표현식 통과못했다는걸 표시
+    if (!texttest.id.test(req.body.id)) return res.status(401).send("incorrect_id");
+    if (!texttest.phone_num.test(req.body.phone_num)) return res.status(401).send("incorrect_phone_num");
 
     //비밀번호 암호화
     let salt = Math.round((new Date().valueOf() * Math.random())) + "";
     let hashPassword = crypto.createHash("sha512").update(inputPassword + salt).digest("hex");
 
     //입력해야 하는 필수요소들 중 하나라도 빠졌을 경우
-    if (!texttest.id.test(req.body.id)) return res.status(401).send("incorrect_id");
-    if (!texttest.phone_num.test(req.body.phone_num)) return res.status(401).send("incorrect_phone_num");
 
     //조건을 만족할 경우
     //중복인 id 비교하기
+    //TODO SQL 공부 SQL에서 아래 기능을 하는게 있는지?
     memberquery.query('select id, phone_num from member_table', (err, result) => {
         if (err) { return res.status(400); }
         for (const item of result) {
@@ -60,8 +64,6 @@ router.post('/signup', (req, res) => {
         }
         return;
     });
-
-    if (!texttest.email.test(req.body.email)) return res.status(401).send("incorrect_email"); //정규표현식 통과못했다는걸 표시
 
 
     memberquery.query(`INSERT INTO member_table SET id = '${req.body.id}', password = '${hashPassword}', name ='${req.body.name}', email = '${req.body.email}', phone_num = '${req.body.phone_num}', salt = '${salt}';`,
@@ -97,6 +99,7 @@ router.post('/login', (req, res) => {
             } else return res.status(401).send('check_password');
         } else return res.sendStatus(400);
         //존재하지 않은경우 return 
+        //TODO 0129 암호화 종류 / 암호화 미들웨어?
     })
 });
 
@@ -169,6 +172,8 @@ router.get('/logout', (req, res) => {
 //회원탈퇴
 router.delete('/:idx', (req, res) => {
     let idx = parseInt(req.params.idx);
+    //TODO 값이 있는지 없는지 체크 
+    if (idx == null) return res.status(400).send("incorrect_request");
 
     memberquery.query('select idx, isResign from member_table where idx = ?', idx,
         (err, result) => {
@@ -177,7 +182,7 @@ router.delete('/:idx', (req, res) => {
             //이미 삭제된 id 일경우
             if (result[0].resign_time) { return res.status(401).send("deleted_id"); }
             //id 삭제 시간과 상태를 보내줌
-            if (!result[0].isResign_time) {
+            if (!result[0].resign_time) {
                 memberquery.query('UPDATE member_table set resign_time = current_timestamp() where idx = ?', [idx], (err, result, fiedls) => {
                     if (err) { console.log(err); return res.status(400); }
                     return res.sendStatus(204);
@@ -191,3 +196,12 @@ router.delete('/:idx', (req, res) => {
 // 회원 상세페이지, 아이디 찾기, 비밀번호 찾기 => 수정 로직 구현해야함 220129
 // 비밀번호의 경우 본인 인증하고 새로 만드는게 더 편할수도? 
 module.exports = router;
+
+
+// 비즈니스 로직, route 컨트롤러 모델(개념), route와 controller 나누기, content 보안정책 => express 미들웨어 적용하기
+// DATABASE 정규화(공부), PK, FK, Tranjection ACID
+
+// 콜백지옥????
+//TODO mysql 쿼리 보내는걸 callback을 promise나 await / async로 바꾸기
+// mysql 비동기 callback구현?
+//https://techlog.io/Javascript/General/%EC%9E%90%EB%B0%94%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8-%EB%B9%84%EB%8F%99%EA%B8%B0%ED%86%B5%EC%8B%A0-callback-promise-async-await-%EC%9D%B4%ED%95%B4%ED%95%98%EA%B8%B0/
