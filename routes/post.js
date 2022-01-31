@@ -1,6 +1,6 @@
 const express = require('express');
 let router = express.Router({ mergeParams: true });
-const bodyParser = require('body-parser');
+
 const session = require('express-session');
 var MySQLStore = require("express-mysql-session")(session);
 const mysqlCon = require('../mysql');
@@ -8,10 +8,8 @@ const logger = require('morgan');
 
 const commentroute = require('./comments/comments');
 const crypto = require('crypto');
-//const router_child = express.Router({ mergeParams: true });
 
 router.use(express.json());
-//router.use(bodyParser.urlencoded({ extended: true }));
 
 const postquery = mysqlCon.init();
 
@@ -96,7 +94,7 @@ router.get('/:idx', (req, res) => {
             else return res.status(401).send("wrong_password");
         }
         return res.status(200).send(result[0]);
-        //TODO board_pass 값 안보이도록
+        // board_pass 값 안보이도록
     });
 });
 //삭제된 게시글이면 보여주지 않도록 처리해야 함 220129
@@ -118,6 +116,7 @@ router.put('/:idx', (req, res) => {
         let board_password = req.body.board_pass;
         let hashPassword = crypto.createHash("sha256").update(board_password).digest("hex");
         //수정한 내용과 시간을 같이 보내줌
+        //users(id, pw) VALUES(?, ?)
         postquery.query(`UPDATE board_table SET title = '${req.body.title}', content = '${req.body.content}', board_pass = '${hashPassword}' , modify_time = current_timestamp() where idx = ?`
             , idx, (err, result) => {
                 if (err) { console.log(err); return res.status(400); }
