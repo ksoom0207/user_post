@@ -33,6 +33,13 @@ router.get('/', (req, res, next) => {
         postquery.query('select idx, title, content, user_id, upload_time from board_table where delete_time is null order by idx asc',
             (err, result, field) => {
                 if (err) { console.log(err); return res.sendStatus(400); }
+
+                let title_text = result[0].title;
+                if (title_text.length >= 50) {
+                    let title_text_modify = text.substring(0, 50);
+                    let title_text_modify = title_text_modify + `...`;
+                }
+
                 return res.status(200).send(result);
             });
 
