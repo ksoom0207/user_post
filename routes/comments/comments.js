@@ -10,6 +10,17 @@ router.use(express.json());
 let cmt = function (req, res) { }
 
 //댓글 보이기
+router.post('/', async (req, res) => {
+    let idx = parseInt(req.params.idx);
+    let select_query = `select user_id, content from comment_table where idx = ?`;
+
+    commentquery.query(insert_query, idx, (err, result, fleid) => {
+        if (err) { console.log(err); return res.sendStatus(400); }
+        return res.sendStatus(200).send(result);
+    })
+});
+
+
 router.post('/', (req, res) => {
     let insert_query = `insert into comment_table SET ?`;
     let idx = parseInt(req.params.idx);
@@ -36,7 +47,6 @@ router.post('/:comment_idx', (req, res) => {
     let idx = parseInt(req.params.idx);
     let comment_idx = parseInt(req.params.comment_idx);
 
-    console.log(comment_idx);
     let comment = {
         "user_id": req.body.user_id,
         "content": req.body.content,
@@ -54,5 +64,6 @@ router.post('/:comment_idx', (req, res) => {
         return res.sendStatus(201);
     })
 });
+//TODO (마지막에하기)목록조회 
 
 module.exports = router;
