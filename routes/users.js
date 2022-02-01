@@ -83,9 +83,10 @@ router.post('/login', (req, res) => {
 
     console.log(sql_injection.user_id1);
 
-    if (sql_injection.user_id1.test(req.body.id)) return res.status(401).send("cannot_use");
-    if (sql_injection.user_id2.test(req.body.id)) return res.status(401).send("cannot_use");
-
+    //sql문 방지
+    if (!sql_injection(req.body.id)) return res.status(401).send("cannot_use");
+    // if (sql_injection.user_id1.test(req.body.id)) return res.status(401).send("cannot_use");
+    // if (sql_injection.user_id2.test(req.body.id)) return res.status(401).send("cannot_use");
 
     memberquery.query('select * from member_table where id = ?', [id], (err, result, fiedls) => {
         if (err) { return res.sendStatus(400); }
