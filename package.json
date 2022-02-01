@@ -15,8 +15,8 @@
     "express": "^4.17.2",
     "express-mysql-session": "^2.1.7",
     "express-session": "^1.17.2",
+    "jquery": "^3.6.0",
     "morgan": "^1.10.0",
     "mysql": "^2.18.1"
   }
-  
 }

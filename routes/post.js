@@ -1,19 +1,17 @@
 const express = require('express');
-let router = express.Router();
-const bodyParser = require('body-parser');
+let router = express.Router({ mergeParams: true });
+
 const session = require('express-session');
 var MySQLStore = require("express-mysql-session")(session);
 const mysqlCon = require('../mysql');
 const logger = require('morgan');
 
+const commentroute = require('./comments/comments');
 const crypto = require('crypto');
 
-
-router.use(bodyParser.json());
-router.use(bodyParser.urlencoded({ extended: true }));
+router.use(express.json());
 
 const postquery = mysqlCon.init();
-mysqlCon.open(postquery);
 
 // var sessionStore = new MySQLStore(options);
 // router.use(
@@ -42,7 +40,8 @@ router.get('/', (req, res, next) => {
         return res.sendStatus(401);
     }
 });
-
+//TODO 제목 길어질 경우 n글자 이상 되었을떄 처리하는 방법? / 작성일
+//조회수 일정 범위 이상 넘어갈경우 +? 1K? 등등
 
 router.post('/write', (req, res) => {
     let newWrite = {
@@ -75,16 +74,19 @@ router.post('/write', (req, res) => {
     }
 
 });
+//TODO 텍스트 에디터? 기본HTML태그 뺴기
 
 //게시글 보기
 router.get('/:idx', (req, res) => {
     //idx의 번호를 가진 게시글을 보여줌 
     let password = req.body.password;
 
-    postquery.query('select idx, title, content, user_id, board_pass, upload_time from board_table where idx = ?', parseInt(req.params.idx), (err, result, field) => {
+    postquery.query('select idx, title, content, user_id, board_pass, upload_time, delete_time from board_table where idx = ?', parseInt(req.params.idx), (err, result, field) => {
         if (err) res.status(400).send(err);
         // 없는 인덱스 페이지를 불러올경우
         if (!result[0]) return res.sendStatus(404);
+        // 삭제된 게시글을 불러올 경우
+        if (result[0].delete_time) return res.status(404).send("deleted_post");
         //게시글의 패스워드가 있을 경우
         if (result[0].board_pass) {
             let dbpassword = result[0].board_pass;
@@ -92,8 +94,14 @@ router.get('/:idx', (req, res) => {
             else return res.status(401).send("wrong_password");
         }
         return res.status(200).send(result[0]);
+        // board_pass 값 안보이도록
     });
 });
+//삭제된 게시글이면 보여주지 않도록 처리해야 함 220129
+
+//댓글 => 게시글 삭제가 되면 댓글도 삭제되도록 구현해야함
+router.use('/:idx/comment', commentroute); //임시로 url
+
 
 //수정하기 버튼을 눌렀을 경우
 router.put('/:idx', (req, res) => {
@@ -103,10 +111,12 @@ router.put('/:idx', (req, res) => {
     if (!req.body.content) return res.status(400).send("write_content");
 
     //비밀번호 추가 or 변경 
+    //TODO board_pass 암호화해서 보내가
     if (req.body.board_pass) {
         let board_password = req.body.board_pass;
         let hashPassword = crypto.createHash("sha256").update(board_password).digest("hex");
         //수정한 내용과 시간을 같이 보내줌
+        //users(id, pw) VALUES(?, ?)
         postquery.query(`UPDATE board_table SET title = '${req.body.title}', content = '${req.body.content}', board_pass = '${hashPassword}' , modify_time = current_timestamp() where idx = ?`
             , idx, (err, result) => {
                 if (err) { console.log(err); return res.status(400); }
@@ -125,22 +135,31 @@ router.put('/:idx', (req, res) => {
 router.delete('/:idx', (req, res) => {
     //삭제시간 넣기
     let idx = parseInt(req.params.idx);
+    let board_password = req.body.board_pass;
+    let hashPassword = crypto.createHash("sha256").update(board_password).digest("hex");
     //인덱스 페이지 있는지 판별
-    postquery.query('select idx from board_table where idx = ?', idx,
+    postquery.query('select idx, board_pass from board_table where idx = ?', idx,
         (err, result) => {
             // 페이지가 없을경우
             if (!result[0]) return res.sendStatus(404);
-            if (result[0]) { //페이지가 있을경우
+
+            //if (result[0]) { //페이지가 있을경우
+            //비밀번호가 맞거나... 아님 실제 비밀번호가 null 값인경우
+            if (result[0].board_pass == hashPassword || !result[0].board_pass) {
                 postquery.query('update board_table SET delete_time = current_timestamp() where idx = ?', idx,
                     (err, result) => {
                         if (err) { return res.status(401); }
                         return res.sendStatus(204);
                     });
             }
+
+            //}
         });
 
 
 });
 
+//검색기능 구현하기 22-01-29 => querystring으로 보낸다면? post/2/commnet?user_id=ksoom0207 이렇게
+//
 
 module.exports = router;
