@@ -1,15 +1,15 @@
-const express = require('express');
-let router = express.Router({ mergeParams: true });
+// const express = require('express');
+// let router = express.Router({ mergeParams: true });
 
-const post_controller = require('../routes');
+// const post_controller = require('../routes');
 
-router.get('/', post_controller.view);
-//router.get('/', authUtil, post_controller.add_post);
+// router.get('/', post_controller.view);
+// //router.get('/', authUtil, post_controller.add_post);
 
-router.post('/write', post_controller.write);
+// router.post('/write', post_controller.write);
 
-router.get('/:idx', post_controller.idx_view);
+// router.get('/:idx', post_controller.idx_view);
 
-router.put('/:idx', post_controller.modify);
+// router.put('/:idx', post_controller.modify);
 
-router.delete('/:idx', post_controller.delete);
+// router.delete('/:idx', post_controller.delete);

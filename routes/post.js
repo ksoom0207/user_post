@@ -35,12 +35,15 @@ router.get('/', (req, res, next) => {
                 if (err) { console.log(err); return res.sendStatus(400); }
 
                 let title_text = result[0].title;
+                //조회수 구현하기
+                //UPDATE board_table SET hit = hit + 1 WHERE idx = 1;
+
                 if (title_text.length >= 50) {
-                    let title_text_modify = text.substring(0, 50);
-                    let title_text_modify = title_text_modify + `...`;
+                    let title_text_modify = title_text.substring(0, 50);
+                    title_text_modify = title_text_modify + `...`;
                 }
 
-                return res.status(200).send(result);
+                return res.status(200);
             });
 
     } catch (error) {

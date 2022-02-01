@@ -10,11 +10,11 @@ router.use(express.json());
 let cmt = function (req, res) { }
 
 //댓글 보이기
-router.post('/', async (req, res) => {
+router.get('/', async (req, res) => {
     let idx = parseInt(req.params.idx);
     let select_query = `select user_id, content from comment_table where idx = ?`;
 
-    commentquery.query(insert_query, idx, (err, result, fleid) => {
+    commentquery.query(select_query, idx, (err, result, fleid) => {
         if (err) { console.log(err); return res.sendStatus(400); }
         return res.sendStatus(200).send(result);
     })

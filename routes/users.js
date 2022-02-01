@@ -1,4 +1,3 @@
-const texttest = require("../texttest");
 
 const express = require('express');
 let router = express.Router();
@@ -10,11 +9,10 @@ const memberquery = mysqlCon.init();
 mysqlCon.open(memberquery);
 
 const crypto = require('crypto');
-const { builtinModules } = require("module");
 const { route } = require("./post");
 
-//router.use(bodyParser.json());
-// router.use(bodyParser.urlencoded({ extended: true }));
+const texttest = require("../texttest");
+const sql_injection = require("../sqlprotect");
 
 
 //var sessionStore = new MySQLStore(options);
@@ -41,6 +39,9 @@ router.post('/signup', (req, res) => {
     if (!req.body.password) return res.status(401).send("write_password");
     if (!req.body.email) return res.status(401).send("write_email");
     if (!req.body.phone_num) return res.status(401).send("write_phone_num");
+
+    if (sql_injection.user_id[0].test(req.body.id)) return res.status(401).send("cannot_use");
+    if (sql_injection.user_id[1].test(req.body.id)) return res.status(401).send("cannot_use");
 
     if (!texttest.password.test(inputPassword)) return res.status(401).send("incorrect_password"); //정규표현식 통과못했다는걸 표시
     if (!texttest.email.test(req.body.email)) return res.status(401).send("incorrect_email"); //정규표현식 통과못했다는걸 표시
@@ -80,24 +81,30 @@ router.post('/login', (req, res) => {
     let id = req.body.id;
     let password = req.body.password;
 
+    console.log(sql_injection.user_id1);
+
+    if (sql_injection.user_id1.test(req.body.id)) return res.status(401).send("cannot_use");
+    if (sql_injection.user_id2.test(req.body.id)) return res.status(401).send("cannot_use");
+
+
     memberquery.query('select * from member_table where id = ?', [id], (err, result, fiedls) => {
         if (err) { return res.sendStatus(400); }
         //맞는 id가 없으면 다시 입력하기
-        if (!result[0]) return res.status(404).send('no_id');
+        if (!result[0]) return res.status(404).send('check_id_or_pass');
         if (user.unsign_time) return res.status(401).send('cannot_use_this_id');
+
+        //값이 존재할 경우
 
         let user = result[0];
         let dbpassword = user.password;
         let dbsalt = user.salt;
         let hashPassword = crypto.createHash("sha512").update(password + dbsalt).digest("hex");
 
-        //값이 존재할 경우
-        if (result.length > 0) {
-            if (dbpassword === hashPassword) { // 비밀번호 일치여부 
-                return res.status(200).send(user.idx + " " + user.name);
-                //로그인 정보 유지
-            } else return res.status(401).send('check_password');
-        } else return res.sendStatus(400);
+        if (dbpassword === hashPassword) { // 비밀번호 일치여부 
+            return res.status(200).send(user.idx + " " + user.name);
+            //로그인 정보 유지
+        } else return res.status(401).send('check_id_or_pass');
+        // } else return res.sendStatus(400);
         //존재하지 않은경우 return 
         //TODO 0129 암호화 종류 / 암호화 미들웨어?
     })
