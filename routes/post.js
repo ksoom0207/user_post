@@ -34,16 +34,18 @@ router.get('/', (req, res, next) => {
             (err, result, field) => {
                 if (err) { console.log(err); return res.sendStatus(400); }
 
-                let title_text = result[0].title;
-                //조회수 구현하기
-                //UPDATE board_table SET hit = hit + 1 WHERE idx = 1;
+                let title_text = [];
+                let title_text_modify = [];
 
-                if (title_text.length >= 50) {
-                    let title_text_modify = title_text.substring(0, 50);
-                    title_text_modify = title_text_modify + `...`;
+                for (let i = 0; i < result.length; i++) {
+                    title_text[i] = result[i].title;
+
+                    if (title_text[i].length >= 50) {
+                        title_text_modify = title_text[i].substring(0, 50);
+                        result[i].title = title_text_modify + `...`;
+                    }
                 }
-
-                return res.status(200);
+                return res.status(200).send(result);
             });
 
     } catch (error) {
@@ -90,9 +92,12 @@ router.post('/write', (req, res) => {
 router.get('/:idx', (req, res) => {
     //idx의 번호를 가진 게시글을 보여줌 
     let password = req.body.password;
+    let idx = parseInt(req.params.idx);
+    let update_query = 'update table board_table set view_post = view_post + 1 where idx = ?;';
+    let select_query = 'select idx, title, content, user_id, board_pass, upload_time, delete_time from board_table where idx = ?;';
 
-    postquery.query('select idx, title, content, user_id, board_pass, upload_time, delete_time from board_table where idx = ?', parseInt(req.params.idx), (err, result, field) => {
-        if (err) res.status(400).send(err);
+    postquery.query(select_query + update_query, [idx, idx], (err, result, field) => {
+        if (err) { console.log(err); res.status(400) };
         // 없는 인덱스 페이지를 불러올경우
         if (!result[0]) return res.sendStatus(404);
         // 삭제된 게시글을 불러올 경우

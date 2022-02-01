@@ -81,7 +81,7 @@ router.post('/login', (req, res) => {
     let id = req.body.id;
     let password = req.body.password;
     //sql문 방지
-    if (!sql_protect(req.body.id)) return res.status(401).send("cannot_use");
+    if (sql_protect(req.body.id)) return res.status(401).send("cannot_use");
     // if (sql_injection.user_id1.test(req.body.id)) return res.status(401).send("cannot_use");
     // if (sql_injection.user_id2.test(req.body.id)) return res.status(401).send("cannot_use");
 
