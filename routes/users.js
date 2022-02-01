@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const { route } = require("./post");
 
 const texttest = require("../texttest");
-const sql_injection = require("../sqlprotect");
+const sql_protect = require("../sqlprotect");
 
 
 //var sessionStore = new MySQLStore(options);
@@ -39,9 +39,9 @@ router.post('/signup', (req, res) => {
     if (!req.body.password) return res.status(401).send("write_password");
     if (!req.body.email) return res.status(401).send("write_email");
     if (!req.body.phone_num) return res.status(401).send("write_phone_num");
+    console.log(sql_protect(body.id));
 
-    if (sql_injection.user_id[0].test(req.body.id)) return res.status(401).send("cannot_use");
-    if (sql_injection.user_id[1].test(req.body.id)) return res.status(401).send("cannot_use");
+    if (!sql_protect(req.body.id)) return res.status(401).send("cannot_use");
 
     if (!texttest.password.test(inputPassword)) return res.status(401).send("incorrect_password"); //정규표현식 통과못했다는걸 표시
     if (!texttest.email.test(req.body.email)) return res.status(401).send("incorrect_email"); //정규표현식 통과못했다는걸 표시
@@ -66,12 +66,12 @@ router.post('/signup', (req, res) => {
         return;
     });
 
-
-    memberquery.query(`INSERT INTO member_table SET id = '${req.body.id}', password = '${hashPassword}', name ='${req.body.name}', email = '${req.body.email}', phone_num = '${req.body.phone_num}', salt = '${salt}';`,
-        (err, row) => {
-            if (err) { return res.status(400); }
-            else return res.sendStatus(201);
-        })
+    let query = `INSERT INTO member_table SET (id , password , name , email, phone_num , salt) VALUES(?,?,?,?,?,?);`
+    let params = [body.id, hashPassword, body.name, body.email, body.phone_num, salt]
+    memberquery.query(query, params, (err, row) => {
+        if (err) { return res.status(400); }
+        else return res.sendStatus(201);
+    })
 
 });
 
@@ -80,11 +80,8 @@ router.post('/signup', (req, res) => {
 router.post('/login', (req, res) => {
     let id = req.body.id;
     let password = req.body.password;
-
-    console.log(sql_injection.user_id1);
-
     //sql문 방지
-    if (!sql_injection(req.body.id)) return res.status(401).send("cannot_use");
+    if (!sql_protect(req.body.id)) return res.status(401).send("cannot_use");
     // if (sql_injection.user_id1.test(req.body.id)) return res.status(401).send("cannot_use");
     // if (sql_injection.user_id2.test(req.body.id)) return res.status(401).send("cannot_use");
 

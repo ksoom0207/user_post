@@ -5,7 +5,7 @@ user_id.push = /1='1/;
 
 module.exports = function sql_protect(text) {
     for (let i = 0; i < user_id.length; i++) {
-        if (text === user_id[i]) return false
+        if (user_id[i].test(text)) return false
     }
 
 }
