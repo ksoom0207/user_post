@@ -30,13 +30,12 @@ const postquery = mysqlCon.init();
 //저장 되어 있는 게시글 불러오기 
 router.get('/', (req, res, next) => {
     try { //delete_time이 없는 즉, 삭제되지 않은 게시글 리스트를 보여줌
-        postquery.query('select idx, title, content, user_id, upload_time from board_table where delete_time is null order by idx asc',
+        postquery.query('select idx, title, content, user_id, upload_time, view_post from board_table where delete_time is null order by idx asc',
             (err, result, field) => {
                 if (err) { console.log(err); return res.sendStatus(400); }
-
                 let title_text = [];
                 let title_text_modify = [];
-
+                let view = 999;
                 for (let i = 0; i < result.length; i++) {
                     title_text[i] = result[i].title;
 
@@ -44,7 +43,12 @@ router.get('/', (req, res, next) => {
                         title_text_modify = title_text[i].substring(0, 50);
                         result[i].title = title_text_modify + `...`;
                     }
+
+                    if (result[i].view_post < 1000) {
+                        view = view + '+';
+                    }
                 }
+
                 return res.status(200).send(result);
             });
 
@@ -56,26 +60,29 @@ router.get('/', (req, res, next) => {
 //조회수 일정 범위 이상 넘어갈경우 +? 1K? 등등
 
 router.post('/write', (req, res) => {
-    let newWrite = {
+    let new_write = {
         "title": req.body.title,
         "content": req.body.content,
         "user_id": req.body.user_id,  //req.session.id 세션에 저장된 id 갖고오기
         "board_pass": req.body.board_pass
     };
 
+    let insert_query = `INSERT INTO board_table SET title = ? , content = ?, user_id = ?, board_pass = ?`;
+
     let board_password = newWrite.board_pass;
     //게시글 입력 쿼리 보내기
-    if (!req.body.title) return res.status(400).send("write_title");
-    if (!req.body.content) return res.status(400).send("write_content");
-    if (!req.body.user_id) return res.status(400).send("write_id");
+    if (!new_write.title) return res.status(400).send("write_title");
+    if (!new_write.content) return res.status(400).send("write_content");
+    if (!new_write.user_id) return res.status(400).send("write_id");
 
     if (newWrite.board_pass) { //게시글 비밀번호가 있을 경우
         let hashPassword = crypto.createHash("sha256").update(String(board_password)).digest("hex");
-        postquery.query(`INSERT INTO board_table SET title = '${newWrite.title}' , content ='${newWrite.content}', user_id ='${newWrite.user_id}', board_pass = '${hashPassword}'`,
-            (err, result) => {
-                if (err) { return res.sendStatus(400); }
-                return res.sendStatus(201);
-            });
+        new_write.board_pass = hashPassword;
+        postquery.query(insert_query, new_write, (err, result) => {
+            if (err) { return res.sendStatus(400); }
+            return res.sendStatus(201);
+        });
+
     }
     else {
         //게시글 비밀번호가 없을 경우
@@ -93,10 +100,12 @@ router.get('/:idx', (req, res) => {
     //idx의 번호를 가진 게시글을 보여줌 
     let password = req.body.password;
     let idx = parseInt(req.params.idx);
-    let update_query = 'update table board_table set view_post = view_post + 1 where idx = ?;';
+    let update_query = 'update board_table set view_post = view_post + 1 where idx = ?;';
     let select_query = 'select idx, title, content, user_id, board_pass, upload_time, delete_time from board_table where idx = ?;';
+    let update = postquery.format(update_query, idx);
+    let select = postquery.format(select_query, idx);
 
-    postquery.query(select_query + update_query, [idx, idx], (err, result, field) => {
+    postquery.query(select + update, (err, result, field) => {
         if (err) { console.log(err); res.status(400) };
         // 없는 인덱스 페이지를 불러올경우
         if (!result[0]) return res.sendStatus(404);

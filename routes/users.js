@@ -3,7 +3,9 @@ const express = require('express');
 let router = express.Router();
 const session = require('express-session');
 var MySQLStore = require("express-mysql-session")(session);
-
+const multer = require("multer");
+//const upload = multer({ dest: './upload' })
+const path = require('path');
 const mysqlCon = require('../mysql');
 const memberquery = mysqlCon.init();
 mysqlCon.open(memberquery);
@@ -14,6 +16,37 @@ const { route } = require("./post");
 const texttest = require("../texttest");
 const sql_protect = require("../sqlprotect");
 
+/*
+router.use('/image', express.static('./upload'));
+// uploads 폴더 없으면 생성
+fs.readdir("uploads", (err) => {
+    if (err) {
+      fs.mkdirSync("uploads");
+    }
+  });
+*/
+
+const upload = multer({
+    //저장방식
+    //dest: 'uploads/',
+    storage: multer.diskStorage({
+        destination(req, file, cb) {  // 저장되는 곳 지정
+            cb(null, 'uploads/');
+        },
+        filename(req, file, cb) {   // 저장되는 이름 지정
+            /*  const ext = path.extname(file.originalname);
+              if (!['png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
+                  return cb(new Error('Only_images_are_allowed'))
+              }*/
+            //cb(null, path.basename(file.originalname, ext) + Date.now() + ext);
+            cb(null, file.originalname + Date.now());
+
+
+        },
+    }),
+    //파일 사이즈
+    limits: { fileSize: 5 * 1024 * 1024 },
+})
 
 //var sessionStore = new MySQLStore(options);
 // router.use(
@@ -115,6 +148,8 @@ router.put('/:idx/info', (req, res) => {
         "email": req.body.email,
         "phone_num": req.body.phone_num
     }
+    const image = `/images/${req.file.filename}`;
+
     // if (!texttest.email.test(body.email)) return res.status(401).send("wrong_information_email");
     // if (!texttest.phone_num.test(body.phone_num)) return res.status(401).send("wrong_information_phone_num");
 
@@ -130,6 +165,19 @@ router.put('/:idx/info', (req, res) => {
     // }
 
 });
+
+router.put('/:idx/user_photo', upload.single('img'), (req, res) => {
+    const image = req.file;
+    console.log(image);
+    if (err) { console.log(err); res.sendStatus(400); }
+    res.json({ url: `/img${req.file.filename}` });
+
+    /* memberquery.query('insert into member_table(user_photo) values (?)',req.file.path, (req,res)=>{
+ 
+     })*/
+
+});
+
 router.put('/:idx/password', (req, res) => {
     let body = req.body;
     let password = body.password;
