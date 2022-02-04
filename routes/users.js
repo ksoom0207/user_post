@@ -28,25 +28,23 @@ fs.readdir("uploads", (err) => {
 
 const upload = multer({
     //저장방식
-    //dest: 'uploads/',
+    //dest: './uploads'
     storage: multer.diskStorage({
         destination(req, file, cb) {  // 저장되는 곳 지정
-            cb(null, 'uploads/');
+            cb(null, './uploads');
         },
         filename(req, file, cb) {   // 저장되는 이름 지정
-            /*  const ext = path.extname(file.originalname);
-              if (!['png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
-                  return cb(new Error('Only_images_are_allowed'))
-              }*/
-            //cb(null, path.basename(file.originalname, ext) + Date.now() + ext);
-            cb(null, file.originalname + Date.now());
-
-
+            const ext = path.extname(file.originalname);
+            // if (!['png', 'jpg', 'jpeg', 'gif', 'JPG', 'PNG'].includes(ext)) {
+            //     return cb(new Error('Only_images_are_allowed'))
+            // }
+            cb(null, path.basename(file.originalname, ext) + Date.now() + ext);
+            // cb(null, file.originalname + Date.now());
         },
     }),
     //파일 사이즈
     limits: { fileSize: 5 * 1024 * 1024 },
-})
+});
 
 //var sessionStore = new MySQLStore(options);
 // router.use(
@@ -63,7 +61,7 @@ const upload = multer({
 //정보를 입력하고 회원가입 하기 버튼(가상)을 눌렀을 경우
 
 //TODO SQL injection 공부 => 미들웨어로 적용
-router.post('/signup', (req, res) => {
+router.post('/signup', async (req, res) => {
     let body = req.body;
     let inputPassword = body.password;
 
@@ -90,7 +88,7 @@ router.post('/signup', (req, res) => {
     //조건을 만족할 경우
     //중복인 id 비교하기
     //TODO SQL 공부 SQL에서 아래 기능을 하는게 있는지?
-    memberquery.query('select id, phone_num from member_table', (err, result) => {
+    await memberquery.query('select id, phone_num from member_table', (err, result) => {
         if (err) { return res.status(400); }
         for (const item of result) {
             if (item.id == body.id) return res.status(401).send("duplicated_id");
@@ -101,7 +99,7 @@ router.post('/signup', (req, res) => {
 
     let query = `INSERT INTO member_table SET (id , password , name , email, phone_num , salt) VALUES(?,?,?,?,?,?);`
     let params = [body.id, hashPassword, body.name, body.email, body.phone_num, salt]
-    memberquery.query(query, params, (err, row) => {
+    await memberquery.query(query, params, (err, row) => {
         if (err) { return res.status(400); }
         else return res.sendStatus(201);
     })
@@ -110,7 +108,7 @@ router.post('/signup', (req, res) => {
 
 
 //로그인 정보 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
     let id = req.body.id;
     let password = req.body.password;
     //sql문 방지
@@ -118,7 +116,7 @@ router.post('/login', (req, res) => {
     // if (sql_injection.user_id1.test(req.body.id)) return res.status(401).send("cannot_use");
     // if (sql_injection.user_id2.test(req.body.id)) return res.status(401).send("cannot_use");
 
-    memberquery.query('select * from member_table where id = ?', [id], (err, result, fiedls) => {
+    await memberquery.query('select * from member_table where id = ?', [id], (err, result, fiedls) => {
         if (err) { return res.sendStatus(400); }
         //맞는 id가 없으면 다시 입력하기
         if (!result[0]) return res.status(404).send('check_id_or_pass');
@@ -143,7 +141,7 @@ router.post('/login', (req, res) => {
 
 //회원정보랑 비밀번호 수정 분기를 따로 두도록 수정하기 22-01-29
 //회원번호를 안보이게 하는 방법은??
-router.put('/:idx/info', (req, res) => {
+router.put('/:idx/info', async (req, res) => {
     let body = {
         "email": req.body.email,
         "phone_num": req.body.phone_num
@@ -166,10 +164,10 @@ router.put('/:idx/info', (req, res) => {
 
 });
 
-router.put('/:idx/user_photo', upload.single('img'), (req, res) => {
+router.post('/:idx/user_photo', upload.single('img'), (req, res) => {
     const image = req.file;
     console.log(image);
-    if (err) { console.log(err); res.sendStatus(400); }
+    //if (err) { console.log(err); res.sendStatus(400); }
     res.json({ url: `/img${req.file.filename}` });
 
     /* memberquery.query('insert into member_table(user_photo) values (?)',req.file.path, (req,res)=>{
@@ -178,7 +176,7 @@ router.put('/:idx/user_photo', upload.single('img'), (req, res) => {
 
 });
 
-router.put('/:idx/password', (req, res) => {
+router.put('/:idx/password', async (req, res) => {
     let body = req.body;
     let password = body.password;
     let modify_password = body.newpassword;
@@ -190,7 +188,7 @@ router.put('/:idx/password', (req, res) => {
 
 
     //비밀번호를 수정할 경우
-    memberquery.query('select password, salt from member_table where idx = ?', idx, (err, result, fiedls) => {
+    await memberquery.query('select password, salt from member_table where idx = ?', idx, (err, result, fiedls) => {
         if (err) { return res.sendStatus(400); }
         if (!result[0]) return res.sendStatus(404);
         let user = result[0];
@@ -205,6 +203,7 @@ router.put('/:idx/password', (req, res) => {
                 New_hashPassword = crypto.createHash("sha512").update(modify_password + salt).digest("hex");
             } else return res.status(401).send('check_orizinal_password');
 
+            //await
             memberquery.query(`UPDATE member_table SET password = '${New_hashPassword}', salt = '${salt}', modify_time = current_timestamp() where idx = ${idx}`,
                 (err, result) => {
                     if (err) { console.log(err); return res.status(400); };
@@ -215,7 +214,7 @@ router.put('/:idx/password', (req, res) => {
 });
 
 //로그아웃
-router.get('/logout', (req, res) => {
+router.get('/logout', async (req, res) => {
     req.session.destroy(err => {
         if (err) return res.sendStatus(500);
     })
@@ -223,12 +222,12 @@ router.get('/logout', (req, res) => {
 })
 
 //회원탈퇴
-router.delete('/:idx', (req, res) => {
+router.delete('/:idx', async (req, res) => {
     let idx = parseInt(req.params.idx);
     //TODO 값이 있는지 없는지 체크 
     if (idx == null) return res.status(400).send("incorrect_request");
 
-    memberquery.query('select idx, isResign from member_table where idx = ?', idx,
+    await memberquery.query('select idx, isResign from member_table where idx = ?', idx,
         (err, result) => {
             //없는 id를 불러왔을경우
             if (!result[0]) { return res.status(404); }
@@ -236,6 +235,7 @@ router.delete('/:idx', (req, res) => {
             if (result[0].resign_time) { return res.status(401).send("deleted_id"); }
             //id 삭제 시간과 상태를 보내줌
             if (!result[0].resign_time) {
+                //왜 커리가 2개면 await이 안될까
                 memberquery.query('UPDATE member_table set resign_time = current_timestamp() where idx = ?', [idx], (err, result, fiedls) => {
                     if (err) { console.log(err); return res.status(400); }
                     return res.sendStatus(204);
